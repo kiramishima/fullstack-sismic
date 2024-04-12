@@ -1,0 +1,21 @@
+source 'https://rubygems.org'
+
+gem 'sinatra', '~> 2.2'
+gem 'sinatra-contrib', '~> 2.2', require: false
+gem 'encrypted_cookie', '0.1.0'
+gem 'rack_csrf', '~> 2.7', require: 'rack/csrf'
+gem 'puma', '~> 5.6'
+gem 'tux', '~> 0.3', require: false
+gem 'uglifier', '~> 4.2', require: false
+gem 'sass', '~> 3.7', require: false
+gem 'sassc', '~> 2.4', require: false
+gem 'sprockets', '~> 4.0'
+gem 'sequel', '>= 5'
+gem 'sequel_pg', '>= 1.17', require: 'sequel'
+gem 'sequel-json', '~> 0.0.1'
+gem 'sequel-paginate', '~> 0.1.1'
+gem 'faraday'
+gem 'tqdm'
+gem "sinatra-param", require: "sinatra/param"
+gem 'will_paginate', '~> 4.0'
+gem "sinatra-cross_origin"

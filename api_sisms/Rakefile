@@ -1,0 +1,78 @@
+require_relative 'config/boot'
+require_relative 'api_sisms'
+require 'faraday'
+require 'json'
+require 'pg'
+require 'tqdm'
+
+namespace :assets do
+  desc "Precompile assets"
+  task :precompile do
+    manifest = ::Sprockets::Manifest.new(ApiSisms.assets.index, "#{ApiSisms.public_folder}/assets")
+    manifest.compile(ApiSisms.assets_manifest)
+  end
+
+  desc "Clean assets"
+  task :clean do
+    FileUtils.rm_rf("#{ApiSisms.public_folder}/assets")
+  end
+end
+
+namespace :db do
+  desc "Run migrations"
+  task :migrate, [:version] do |t, args|
+    Sequel.extension :migration
+    db = Sequel.connect(YAML.load_file("#{Sinator::ROOT}/config/database.yml")[ENV['RACK_ENV']])
+    migration_path = "#{Sinator::ROOT}/db/migrations"
+
+    if args[:version]
+      puts "Migrating to version #{args[:version]}"
+      Sequel::Migrator.run(db, migration_path, target: args[:version].to_i)
+    else
+      puts "Migrating to latest"
+      Sequel::Migrator.run(db, migration_path)
+    end
+  end
+end
+
+namespace :earthquake do
+  desc "Get Data From EarthQuake USGS"
+  task :get_data_from_earthquake do |t, args|
+    # Connection
+    Sequel.extension :migration
+    db = Sequel.connect(YAML.load_file("#{Sinator::ROOT}/config/database.yml")[ENV['RACK_ENV']])
+    puts "Getting data from earthquake api"
+    response = Faraday.get('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_month.geojson')
+    jdata = JSON.parse(response.body)
+    items = db[:features]
+    jdata["features"].with_progress.each do |feature|
+      #if feature["properties"]['place'].nil? || feature["properties"]['url'].nil? || feature["properties"]['magType'].nil? ||
+      #  feature["properties"]['placeType'].nil? || feature["geometry"]['coordinates'].nil?
+      #  next
+      #end
+      # puts feature["properties"]['mag'].to_f
+      if -1.0 >= feature["properties"]['mag'].to_f || feature["properties"]['mag'].to_f <= 10.0
+        if -180.0 >= feature["geometry"]['coordinates'][0].to_f || feature["geometry"]['coordinates'][0].to_f <= 180.0
+          if -90.0 >= feature["properties"]['mag'].to_f || feature["properties"]['mag'].to_f <= 90.0
+            begin
+            items.insert(external_id: feature["id"],
+                         mag: feature["properties"]['mag'].to_f,
+                         place: feature["properties"]['place'],
+                         time: feature["properties"]['time'],
+                         url: feature["properties"]['url'],
+                         tsunami: feature["properties"]['tsunami'],
+                         mag_type: feature["properties"]['magType'],
+                         title: feature["properties"]['title'],
+                         longitude: feature["geometry"]['coordinates'][0].to_f,
+                         latitude: feature["geometry"]['coordinates'][1].to_f)
+            rescue Exception
+              # Si se lanza la excepcion de que ya existe el registro, skipeamos este registro y continuamos con el siguiente
+              next
+            end
+          end
+        end
+      end
+    end
+    puts "Finishing getting data from earthquake api"
+  end
+end

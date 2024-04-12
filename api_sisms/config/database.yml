@@ -1,0 +1,15 @@
+# http://sequel.jeremyevans.net/rdoc/files/doc/opening_databases_rdoc.html
+#
+development:
+  adapter: postgres
+  host: pg-database
+  database: sismic
+  username: postgres
+  password: postgres
+
+production:
+  adapter: postgres
+  host: pg-database
+  database: sismic
+  username: postgres
+  password: postgres
